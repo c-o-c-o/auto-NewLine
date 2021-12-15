@@ -7,7 +7,7 @@ builds:
     binary: auto-NewLine
     ldflags:
       - -s -w
-      - -X info.Version={{.Version}}
+      - -X main.Version={{.Version}}
     env:
       - CGO_ENABLED=0
     goos:
