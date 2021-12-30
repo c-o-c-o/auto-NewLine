@@ -1,10 +1,15 @@
 package main
 
 import (
+	"auto-NewLine/env"
+	"errors"
 	"log"
 	"os"
+	"path"
+	"regexp"
 	"strings"
-	"unicode"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/ikawaha/kagome-dict/ipa"
 	"github.com/ikawaha/kagome/v2/tokenizer"
@@ -15,6 +20,12 @@ import (
 )
 
 func main() {
+	exep, err := env.GetExecDir()
+	if err != nil {
+		println(err)
+		return
+	}
+
 	app := &cli.App{
 		Name:            "auto-NewLine",
 		Usage:           Version,
@@ -40,11 +51,17 @@ func main() {
 				Value:   "shift-jis",
 				Usage:   "エンコード",
 			},
+			&cli.PathFlag{
+				Name:    "setting",
+				Aliases: []string{"s"},
+				Value:   path.Join(exep, "setting.yml"),
+				Usage:   "設定ファイルのパス",
+			},
 		},
 		Action: appfunc,
 	}
 
-	err := app.Run(os.Args)
+	err = app.Run(os.Args)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -53,51 +70,81 @@ func main() {
 func appfunc(c *cli.Context) error {
 	maxlen := c.Int("maxlen")
 	textp := c.Path("text")
-	enc := map[string]encoding.Encoding{
-		"utf-8":     nil,
-		"shift-jis": japanese.ShiftJIS,
-	}
 
-	text, err := os.ReadFile(textp)
+	enc, err := GetEncoding(c.String("encode"))
 	if err != nil {
 		return err
 	}
 
-	e := enc[c.String("encode")]
-	if e != nil {
-		text, _, err = transform.Bytes(e.NewDecoder(), text)
-		if err != nil {
-			return err
-		}
+	text, err := LoadText(textp, enc)
+	if err != nil {
+		return err
 	}
-
 	if len([]rune(string(text))) < maxlen {
 		return nil
 	}
 
-	anlys, err := AnalyzeLanguage(string(text))
+	stg, err := LoadSetting(c.Path("setting"))
 	if err != nil {
 		return err
 	}
-	minstrs := JoinSimilar(anlys)
-	nlstrs := JoinStrings(minstrs, maxlen)
-	wbytes := []byte(strings.Join(nlstrs, "\r\n"))
 
-	if e != nil {
-		wbytes, _, err = transform.Bytes(e.NewEncoder(), wbytes)
+	minstrs, err := GetLineBreakable(string(text), *stg)
+	if err != nil {
+		return err
+	}
+
+	return WriteTextFile(textp, WithLimitJoinStrings(minstrs, stg.Newline, maxlen), enc)
+}
+
+func GetEncoding(enc string) (encoding.Encoding, error) {
+	e, ok := map[string]encoding.Encoding{
+		"utf-8":     nil,
+		"shift-jis": japanese.ShiftJIS,
+	}[enc]
+
+	if !ok {
+		return nil, errors.New("the encoding was not found")
+	}
+	return e, nil
+}
+
+func LoadText(textp string, enc encoding.Encoding) ([]byte, error) {
+	text, err := os.ReadFile(textp)
+	if err != nil {
+		return nil, err
+	}
+
+	if enc != nil {
+		text, _, err = transform.Bytes(enc.NewDecoder(), text)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return os.WriteFile(textp, wbytes, 0777)
+	return text, nil
 }
 
-func JoinStrings(minstrs []string, maxlen int) []string {
-	lines := []string{}
-	line := ""
+func LoadSetting(path string) (*Setting, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
 
-	for _, str := range minstrs {
+	r := Setting{}
+	err = yaml.Unmarshal(b, &r)
+	if err != nil {
+		return nil, err
+	}
+
+	return &r, nil
+}
+
+func WithLimitJoinStrings(strs []string, sep string, maxlen int) string {
+	lines := []string{}
+	line := strs[0]
+
+	for _, str := range strs[1:] {
 		if len([]rune(line))+len([]rune(str)) <= maxlen {
 			line += str
 		} else {
@@ -110,75 +157,97 @@ func JoinStrings(minstrs []string, maxlen int) []string {
 		lines = append(lines, line)
 	}
 
-	return lines
+	return strings.Join(lines, sep)
 }
 
-func JoinSimilar(strs []string) []string {
-	rslt := []string{}
-
-	for i := 0; i < len(strs); i++ {
-		if i >= len(strs)-1 {
-			rslt = append(rslt, strs[i])
-			break
-		}
-
-		now := []rune(strs[i])
-		next := []rune(strs[i+1])
-
-		if IsSimilar(now, next, unicode.Han) {
-			rslt = append(rslt, strs[i]+strs[i+1])
-			i++
-			continue
-		}
-
-		if IsSimilar(now, next, unicode.Katakana) {
-			rslt = append(rslt, strs[i]+strs[i+1])
-			i++
-			continue
-		}
-
-		if IsSimilar(now, next, unicode.Digit) {
-			rslt = append(rslt, strs[i]+strs[i+1])
-			i++
-			continue
-		}
-
-		rslt = append(rslt, strs[i])
-	}
-
-	return rslt
-}
-
-func IsSimilar(l []rune, r []rune, rt *unicode.RangeTable) bool {
-	return unicode.In(l[len(l)-1], rt) && unicode.In(r[0], rt)
-}
-
-func AnalyzeLanguage(text string) ([]string, error) {
-	t, err := tokenizer.New(ipa.Dict(), tokenizer.OmitBosEos())
+func GetLineBreakable(text string, stg Setting) ([]string, error) {
+	ter, err := tokenizer.New(ipa.Dict(), tokenizer.OmitBosEos())
 	if err != nil {
 		return nil, err
 	}
-	tokens := t.Tokenize(text)
-	anlys := []string{}
 
-	for _, token := range tokens {
-		f := token.Features()
-		if len(anlys) != 0 && (Included(f, "接", "助", "記号", "非自立", "サ変")) {
-			anlys[len(anlys)-1] += token.Surface
-		} else {
-			anlys = append(anlys, token.Surface)
+	tokens := ter.Tokenize(text)
+	lbrk := []string{}
+
+	backfetrs := []string{}
+	back := ""
+	for i, token := range tokens {
+		next := token.Surface
+		nextfetrs := token.Features()[0:6]
+
+		if i > 0 {
+			canlbrk, err := CanLineBreak(back, next, backfetrs, nextfetrs, stg)
+			if err != nil {
+				return nil, err
+			}
+			if canlbrk {
+				lbrk[len(lbrk)-1] += next
+				back = next
+				backfetrs = nextfetrs
+				continue
+			}
 		}
+
+		back = next
+		backfetrs = nextfetrs
+		lbrk = append(lbrk, next)
 	}
-	return anlys, nil
+
+	return lbrk, nil
 }
 
-func Included(strs []string, substrs ...string) bool {
-	for _, s := range strs {
-		for _, ss := range substrs {
-			if strings.Contains(s, ss) {
-				return true
+func CanLineBreak(back string, next string, backfetrs []string, nextfetrs []string, stg Setting) (bool, error) {
+	for _, backfetr := range backfetrs {
+		for _, nextfetr := range nextfetrs {
+			for _, ptnsdict := range stg.NotNLFeatures {
+				ismatch, err := MatchKeyValue(backfetr, nextfetr, ptnsdict)
+				if err != nil || ismatch {
+					return ismatch, err
+				}
 			}
 		}
 	}
-	return false
+
+	for _, ptnsdict := range stg.NotNLStrings {
+		ismatch, err := MatchKeyValue(back, next, ptnsdict)
+		if err != nil || ismatch {
+			return ismatch, err
+		}
+	}
+
+	return false, nil
+}
+
+func MatchKeyValue(key string, value string, dict map[string]string) (bool, error) {
+	for k, v := range dict {
+		isbackm, err := regexp.MatchString(k, key)
+		if err != nil {
+			return false, err
+		}
+
+		isnextm, err := regexp.MatchString(v, value)
+		if err != nil {
+			return false, err
+		}
+
+		if isbackm && isnextm {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func WriteTextFile(path string, text string, enc encoding.Encoding) error {
+	bytes := []byte(text)
+
+	if enc != nil {
+		b, _, err := transform.Bytes(enc.NewEncoder(), []byte(text))
+		bytes = b
+		if err != nil {
+			return err
+		}
+	}
+
+	return os.WriteFile(path, bytes, 0777)
 }
