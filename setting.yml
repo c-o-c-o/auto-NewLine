@@ -1,5 +1,5 @@
-Newline-Character: "\r\n"
-Not-NewLine-Features-Pattern:
+Newline-Character: "\r\n" #改行文字を指定します
+Not-NewLine-Features-Pattern: #改行しない文字を品詞で指定します
   - 名詞: 名詞
   - サ変: .*
   - .*: ^接頭
@@ -13,7 +13,7 @@ Not-NewLine-Features-Pattern:
   - .*: 読点
   - .*: 句点
   - .*: 非自立
-Not-NewLine-String-Pattern:
+Not-NewLine-String-Pattern: #改行しない文字を文で指定します
   - "[亜-黑]$": "^[亜-黑]"
   - "[ァ-ヶ]$": "^[ァ-ヶ]"
   - .*: "♪"
