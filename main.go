@@ -4,6 +4,7 @@ import (
 	"auto-NewLine/env"
 	"errors"
 	"log"
+	"math"
 	"os"
 	"path"
 	"regexp"
@@ -94,7 +95,7 @@ func appfunc(c *cli.Context) error {
 		return err
 	}
 
-	return WriteTextFile(textp, WithLimitJoinStrings(minstrs, stg.Newline, maxlen), enc)
+	return WriteTextFile(textp, WithLimitJoinStrings(len([]rune(string(text))), minstrs, stg.Newline, maxlen), enc)
 }
 
 func GetEncoding(enc string) (encoding.Encoding, error) {
@@ -140,17 +141,22 @@ func LoadSetting(path string) (*Setting, error) {
 	return &r, nil
 }
 
-func WithLimitJoinStrings(strs []string, sep string, maxlen int) string {
+func WithLimitJoinStrings(textlen int, strs []string, sep string, maxlen int) string {
 	lines := []string{}
 	line := strs[0]
+	minlen := textlen / int(math.Ceil(float64(textlen)/float64(maxlen)))
 
 	for _, str := range strs[1:] {
-		if len([]rune(line))+len([]rune(str)) <= maxlen {
-			line += str
-		} else {
+		linelen := len([]rune(line))
+		strlen := len([]rune(str))
+
+		if minlen <= linelen || linelen+strlen >= maxlen {
 			lines = append(lines, line)
 			line = str
+			continue
 		}
+
+		line += str
 	}
 
 	if line != "" {
