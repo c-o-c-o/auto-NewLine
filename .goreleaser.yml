@@ -22,6 +22,7 @@ archives:
       386: x86
       amd64: x64
     files:
+      - user-dict.txt
       - setting.yml
       - Readme.md
       - LICENCE

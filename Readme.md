@@ -6,7 +6,8 @@
 auto-NewLine.exe [options]
 options
   -t テキストファイルのパス
-  -l 最大文字数[30]
+  -min 最小文字数[10]
+  -max 最大文字数[30]
   -e テキストファイルのエンコード[shift-jis]
   -s 設定ファイルのパス[setting.yml]
 ```
