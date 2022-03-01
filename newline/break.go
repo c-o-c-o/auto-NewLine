@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func Break(infos []Info, stg data.Setting, min int, aim float32, max int) string {
+func Break(infos []Info, stg data.Setting, min int, aim float64, max int) string {
 	breaked := [][]Info{}
 
 	for len(infos) > 0 && getWordLength(infos) > max {
@@ -50,20 +50,20 @@ func splitSliceWordCount(slice []Info, count int, isover bool) ([]Info, []Info) 
 	return slice[:splidx], slice[splidx:]
 }
 
-func getBreakValues(space []Info, wait float32, offset int, aim float32) []float32 {
-	rslt := []float32{}
+func getBreakValues(space []Info, wait float64, offset int, aim float64) []float64 {
+	rslt := []float64{}
 
 	for _, v := range space {
-		distance := math.Abs(float64(aim - float32(v.End-offset)))
-		rslt = append(rslt, float32(v.Priority)*wait-float32(distance))
+		distance := math.Abs(aim - float64(v.End-offset))
+		rslt = append(rslt, v.Priority*wait-distance)
 	}
 
 	return rslt
 }
 
-func getMaxIndex(slice []float32) int {
+func getMaxIndex(slice []float64) int {
 	idx := 0
-	max := float32(0.0)
+	max := 0.0
 
 	for i, v := range slice {
 		if max < v {

@@ -11,7 +11,7 @@ import (
 )
 
 type Info struct {
-	Priority int
+	Priority float64
 	Word     string
 	Start    int
 	End      int
@@ -73,8 +73,8 @@ func Analyze(tokens []tokenizer.Token, bptns []data.BreakPattern) ([]Info, error
 	return result, nil
 }
 
-func getPriority(ltoken *tokenizer.Token, rtoken *tokenizer.Token, bptns []data.BreakPattern) (int, error) {
-	def := 0
+func getPriority(ltoken *tokenizer.Token, rtoken *tokenizer.Token, bptns []data.BreakPattern) (float64, error) {
+	def := 0.0
 
 	for _, bptn := range bptns {
 		if len(bptn.Patterns) == 0 {
