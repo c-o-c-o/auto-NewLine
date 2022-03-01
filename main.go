@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	exep, err := env.GetExecDir()
+	exedp, err := env.GetExecDir()
 	if err != nil {
 		println(err)
 		return
@@ -59,11 +59,11 @@ func main() {
 			&cli.PathFlag{
 				Name:    "setting",
 				Aliases: []string{"s"},
-				Value:   path.Join(exep, "setting.yml"),
+				Value:   path.Join(exedp, "setting.yml"),
 				Usage:   "設定ファイルのパス",
 			},
 		},
-		Action: appfunc,
+		Action: appfunc(exedp),
 	}
 
 	err = app.Run(os.Args)
@@ -72,41 +72,43 @@ func main() {
 	}
 }
 
-func appfunc(c *cli.Context) error {
-	minlen := c.Int("minlen")
-	maxlen := c.Int("maxlen")
-	textp := c.Path("text")
+func appfunc(exedp string) func(c *cli.Context) error {
+	return func(c *cli.Context) error {
+		minlen := c.Int("minlen")
+		maxlen := c.Int("maxlen")
+		textp := c.Path("text")
 
-	enc, err := GetEncoding(c.String("encode"))
-	if err != nil {
-		return err
+		enc, err := GetEncoding(c.String("encode"))
+		if err != nil {
+			return err
+		}
+
+		text, err := LoadText(textp, enc)
+		if err != nil {
+			return err
+		}
+
+		// テキストが最大文字数以下なら何もしない
+		textlen := len([]rune(string(text)))
+		if textlen <= maxlen {
+			return nil
+		}
+
+		stg, err := LoadSetting(c.Path("setting"))
+		if err != nil {
+			return err
+		}
+
+		nlinfos, err := newline.GetInfo(string(text), stg.BreakPatterns, path.Join(exedp, "user-dict.txt"))
+		if err != nil {
+			return err
+		}
+
+		return WriteTextFile(
+			textp,
+			newline.Break(nlinfos, *stg, minlen, float32(float64(textlen)/math.Ceil(float64(textlen)/float64(maxlen))), maxlen),
+			enc)
 	}
-
-	text, err := LoadText(textp, enc)
-	if err != nil {
-		return err
-	}
-
-	// テキストが最大文字数以下なら何もしない
-	textlen := len([]rune(string(text)))
-	if textlen <= maxlen {
-		return nil
-	}
-
-	stg, err := LoadSetting(c.Path("setting"))
-	if err != nil {
-		return err
-	}
-
-	nlinfos, err := newline.GetInfo(string(text), stg.BreakPatterns, "user-dict.txt")
-	if err != nil {
-		return err
-	}
-
-	return WriteTextFile(
-		textp,
-		newline.Break(nlinfos, *stg, minlen, float32(float64(textlen)/math.Ceil(float64(textlen)/float64(maxlen))), maxlen),
-		enc)
 }
 
 func GetEncoding(enc string) (encoding.Encoding, error) {
