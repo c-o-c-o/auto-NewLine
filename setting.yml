@@ -2,7 +2,7 @@
 
 BreakString: "\r\n" #改行文字を指定します
 BreakPattern: #改行優先度をパターンで指定します、上に行くほど処理優先度が高くなります
-  - Priority: 3 #改行優先度
+  - Priority: 4 #改行優先度
     Pattern: #パターン
       - 読点: $.* #先頭に$をつけると文字で、着けなければ品詞でチェックします。
       - 句点: $.* #基本的に文字チェックの方が軽量です
@@ -12,11 +12,14 @@ BreakPattern: #改行優先度をパターンで指定します、上に行く�
   - Priority: -1
     Pattern:
       - 助: 助
-  - Priority: 2
+  - Priority: 3
     Pattern:
       - $.*: 括弧開
       - 括弧閉: $.*
       - ^接続詞: $.*
+  - Priority: 2
+    Pattern:
+      - 助: 名詞
   - Priority: 1
     Pattern:
       - 助: $.*
