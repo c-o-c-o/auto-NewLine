@@ -2,28 +2,43 @@ package newline
 
 import (
 	"auto-NewLine/data"
+	"errors"
 	"math"
+	"strconv"
 	"strings"
 )
 
-func Break(infos []Info, stg data.Setting, min int, aim float64, max int) string {
+func Break(infos []Info, stg data.Setting, min int, aim float64, max int) (string, error) {
 	breaked := [][]Info{}
 
 	for len(infos) > 0 && getWordLength(infos) > max {
 		space, residue := splitSliceWordCount(infos, max, false)
+
+		if len(space) == 0 { //エラー処理
+			maxlen := 0
+			for _, r := range residue {
+				maxlen = int(math.Max(float64(maxlen), float64(r.End-r.Start)))
+			}
+			return "", errors.New("words longer than -max value found. make that value larger than " + strconv.Itoa(maxlen))
+		}
+
 		line, space := splitSliceWordCount(space, min, true)
 
-		brkvals := getBreakValues(space, stg.PriorityWait, line[0].Start, aim)
-		brkidx := getMaxIndex(brkvals)
+		if len(space) != 0 {
+			brkvals := getBreakValues(space, stg.PriorityWait, line[0].Start, aim)
+			brkidx := getMaxIndex(brkvals)
 
-		line = append(line, space[:brkidx+1]...)
-		infos = append(space[brkidx+1:], residue...)
+			line = append(line, space[:brkidx+1]...)
+			infos = append(space[brkidx+1:], residue...)
+		} else {
+			infos = residue
+		}
 
 		breaked = append(breaked, line)
 	}
 
 	breaked = append(breaked, infos)
-	return merge(breaked, stg)
+	return merge(breaked, stg), nil
 }
 
 func getWordLength(infos []Info) int {
@@ -32,7 +47,7 @@ func getWordLength(infos []Info) int {
 
 func splitSliceWordCount(slice []Info, count int, isover bool) ([]Info, []Info) {
 	offset := slice[0].Start
-	splidx := 0
+	splidx := 1
 
 	for i, v := range slice {
 		if v.End-offset >= count {
@@ -42,9 +57,11 @@ func splitSliceWordCount(slice []Info, count int, isover bool) ([]Info, []Info) 
 			}
 
 			break
-		} else { //最小分割ワードの長さがcountを超えていた場合
-			splidx = 1
 		}
+	}
+
+	if splidx >= len(slice) {
+		return slice, []Info{}
 	}
 
 	return slice[:splidx], slice[splidx:]

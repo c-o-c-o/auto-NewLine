@@ -106,10 +106,16 @@ func appfunc(exedp string) func(c *cli.Context) error {
 
 		ftextlen := float64(textlen)
 		fmaxlen := float64(maxlen)
+		aimpos := ftextlen / math.Ceil(ftextlen/fmaxlen)
+
+		breaked, err := newline.Break(nlinfos, *stg, minlen, aimpos, maxlen)
+		if err != nil {
+			return err
+		}
 
 		return WriteTextFile(
 			textp,
-			newline.Break(nlinfos, *stg, minlen, ftextlen/math.Ceil(ftextlen/fmaxlen), maxlen),
+			breaked,
 			enc)
 	}
 }

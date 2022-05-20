@@ -10,7 +10,7 @@
             "request": "launch",
             "mode": "auto",
             "program": ".",
-            "args": ["-t", "test.txt"],
+            "args": ["-max", "2", "-min", "1", "-t", "test.txt"],
             "buildFlags": "-tags debug",
         }
     ]
