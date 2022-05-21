@@ -50,6 +50,13 @@ func main() {
 				Value:   30,
 				Usage:   "最大文字数",
 			},
+			&cli.Float64Flag{
+				Name:    "aimpos",
+				Aliases: []string{"aim"},
+				Value:   1.0,
+				Usage:   "どの程度で改行を試みるかの割合。0.0 - 1.0 を設定します。範囲外の場合、テキストに合わせて自動的に設定されます",
+				EnvVars: []string{},
+			},
 			&cli.StringFlag{
 				Name:    "encode",
 				Aliases: []string{"e"},
@@ -104,9 +111,11 @@ func appfunc(exedp string) func(c *cli.Context) error {
 			return err
 		}
 
-		ftextlen := float64(textlen)
-		fmaxlen := float64(maxlen)
-		aimpos := ftextlen / math.Ceil(ftextlen/fmaxlen)
+		aimpos := GetStringCountAimPos(
+			float64(textlen),
+			float64(minlen),
+			float64(maxlen),
+			c.Float64("aimpos"))
 
 		breaked, err := newline.Break(nlinfos, *stg, minlen, aimpos, maxlen)
 		if err != nil {
@@ -117,6 +126,14 @@ func appfunc(exedp string) func(c *cli.Context) error {
 			textp,
 			breaked,
 			enc)
+	}
+}
+
+func GetStringCountAimPos(textlen, minlen, maxlen, aimpos float64) float64 {
+	if aimpos < 0 || aimpos > 1 {
+		return textlen / math.Ceil(textlen/maxlen)
+	} else {
+		return minlen + aimpos*(maxlen-minlen)
 	}
 }
 

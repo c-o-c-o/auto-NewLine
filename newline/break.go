@@ -55,7 +55,7 @@ func splitSliceWordCount(slice []Info, count int, isover bool) ([]Info, []Info) 
 	splidx := 1
 
 	for i, v := range slice {
-		if v.End-offset >= count {
+		if v.End-offset > count {
 			splidx = i
 			if isover && v.End-offset != count {
 				splidx += 1
@@ -85,7 +85,7 @@ func getBreakValues(space []Info, wait float64, offset int, aim float64) []float
 
 func getMaxIndex(slice []float64) int {
 	idx := 0
-	max := 0.0
+	max := -math.MaxFloat64
 
 	for i, v := range slice {
 		if max < v {
