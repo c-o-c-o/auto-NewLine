@@ -25,7 +25,12 @@ func Break(infos []Info, stg data.Setting, min int, aim float64, max int) (strin
 		line, space := splitSliceWordCount(space, min, true)
 
 		if len(space) != 0 {
-			brkvals := getBreakValues(space, stg.PriorityWait, line[0].Start, aim)
+			offset := 0
+			if len(line) > 0 {
+				offset = line[0].Start
+			}
+
+			brkvals := getBreakValues(space, stg.PriorityWait, offset, aim)
 			brkidx := getMaxIndex(brkvals)
 
 			line = append(line, space[:brkidx+1]...)
