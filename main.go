@@ -53,7 +53,7 @@ func main() {
 			&cli.Float64Flag{
 				Name:    "aimpos",
 				Aliases: []string{"aim"},
-				Value:   1.0,
+				Value:   -1.0,
 				Usage:   "どの程度で改行を試みるかの割合。0.0 - 1.0 を設定します。範囲外の場合、テキストに合わせて自動的に設定されます",
 				EnvVars: []string{},
 			},
