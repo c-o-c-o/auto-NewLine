@@ -23,6 +23,7 @@ func Break(infos []Info, stg data.Setting, min int, aim float64, max int) (strin
 		}
 
 		line, space := splitSliceWordCount(space, min, true)
+		line, space = moveItemLeftToReght(line, space)
 
 		if len(space) != 0 {
 			offset := 0
@@ -46,30 +47,31 @@ func Break(infos []Info, stg data.Setting, min int, aim float64, max int) (strin
 	return merge(breaked, stg), nil
 }
 
+func moveItemLeftToReght(from, to []Info) ([]Info, []Info) {
+	return from[:len(from)-1], append([]Info{from[len(from)-1]}, to...)
+}
+
 func getWordLength(infos []Info) int {
 	return infos[len(infos)-1].End - infos[0].Start
 }
 
 func splitSliceWordCount(slice []Info, count int, isover bool) ([]Info, []Info) {
 	offset := slice[0].Start
-	splidx := 1
+	splidx := 0
 
 	for i, v := range slice {
-		if v.End-offset > count {
-			splidx = i
-			if isover && v.End-offset != count {
-				splidx += 1
+		if v.End-offset >= count {
+			if isover || v.End-offset == count {
+				splidx = i
 			}
 
 			break
 		}
+
+		splidx = i
 	}
 
-	if splidx >= len(slice) {
-		return slice, []Info{}
-	}
-
-	return slice[:splidx], slice[splidx:]
+	return slice[:splidx+1], slice[splidx+1:]
 }
 
 func getBreakValues(space []Info, wait float64, offset int, aim float64) []float64 {
