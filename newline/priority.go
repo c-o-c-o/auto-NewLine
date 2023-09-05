@@ -124,13 +124,11 @@ func match(prefix rune, token *tokenizer.Token, ptn string) (bool, error) {
 	for _, f := range token.Features() {
 		matched, err := regexp.MatchString(ptn, f)
 
-		if err != nil {
-			return false, err
+		if !matched && err == nil {
+			continue
 		}
 
-		if matched {
-			return true, nil
-		}
+		return matched, err
 	}
 
 	return false, nil

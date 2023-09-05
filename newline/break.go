@@ -25,20 +25,16 @@ func Break(infos []WordInfo, stg data.Setting, min int, aim float64, max int) (s
 		line, space := splitSliceWordCount(maxline, min, true)
 		line, space = moveItemLeftToReght(line, space) // 単語の後の改行位置を探るので、最小行から一単語を候補へ移動
 
-		if len(space) != 0 {
-			offset := 0
-			if len(line) > 0 {
-				offset = line[0].Start
-			}
-
-			brkvals := getBreakValues(space, stg.PriorityWait, offset, aim)
-			brkidx := getMaxIndex(brkvals)
-
-			line = append(line, space[:brkidx+1]...)
-			infos = append(space[brkidx+1:], residue...)
-		} else {
-			infos = residue
+		offset := 0
+		if len(line) > 0 {
+			offset = line[0].Start
 		}
+
+		brkvals := getBreakValues(space, stg.PriorityWait, offset, aim)
+		brkidx := getMaxIndex(brkvals)
+
+		line = append(line, space[:brkidx+1]...)
+		infos = append(space[brkidx+1:], residue...)
 
 		breaked = append(breaked, line)
 	}
