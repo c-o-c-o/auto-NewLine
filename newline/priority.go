@@ -34,15 +34,10 @@ func GetInfo(text string, bptns []data.BreakPattern, userDictPath string) ([]Wor
 
 func Analyze(tokens []tokenizer.Token, bptns []data.BreakPattern) ([]WordInfo, error) {
 	result := []WordInfo{}
-	var ltoken *tokenizer.Token = nil
-	var rtoken *tokenizer.Token = nil
 
-	for i := 0; i < len(tokens); i++ {
-		ltoken = rtoken
-		rtoken = &tokens[i]
-		if ltoken == nil {
-			continue
-		}
+	for i := 1; i < len(tokens); i++ {
+		var ltoken *tokenizer.Token = &tokens[i-1]
+		var rtoken *tokenizer.Token = &tokens[i]
 
 		p, err := getPriority(ltoken, rtoken, bptns)
 		if err != nil {
@@ -74,11 +69,11 @@ func Analyze(tokens []tokenizer.Token, bptns []data.BreakPattern) ([]WordInfo, e
 }
 
 func getPriority(ltoken *tokenizer.Token, rtoken *tokenizer.Token, bptns []data.BreakPattern) (float64, error) {
-	def := 0.0
+	priority := 0.0
 
 	for _, bptn := range bptns {
 		if len(bptn.Patterns) == 0 {
-			def = bptn.Priority
+			priority = bptn.Priority
 			continue
 		}
 
@@ -92,7 +87,7 @@ func getPriority(ltoken *tokenizer.Token, rtoken *tokenizer.Token, bptns []data.
 		}
 	}
 
-	return def, nil
+	return priority, nil
 }
 
 func checkPriority(bptn data.BreakPattern, ltoken *tokenizer.Token, rtoken *tokenizer.Token) (bool, error) {
