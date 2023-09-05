@@ -2,13 +2,13 @@ package main
 
 import (
 	"auto-NewLine/data"
-	"auto-NewLine/env"
 	"auto-NewLine/newline"
 	"errors"
 	"log"
 	"math"
 	"os"
 	"path"
+	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 
@@ -19,7 +19,10 @@ import (
 )
 
 func main() {
-	exedp, err := env.GetExecDir()
+	exedp, err := func() (string, error) {
+		p, err := os.Executable()
+		return filepath.Dir(p), err
+	}()
 	if err != nil {
 		println(err)
 		return
