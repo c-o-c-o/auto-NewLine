@@ -8,7 +8,7 @@ require (
 	github.com/ikawaha/kagome/v2 v2.7.0
 	github.com/urfave/cli/v2 v2.3.0
 	golang.org/x/text v0.3.8
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+	gopkg.in/yaml.v3 v3.0.0-20220521103104-8f96da9f5d5e
 )
 
 require (

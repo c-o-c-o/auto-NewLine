@@ -10,7 +10,7 @@ import (
 	"github.com/ikawaha/kagome/v2/tokenizer"
 )
 
-type Info struct {
+type WordInfo struct {
 	Priority float64
 	Word     string
 	Start    int
@@ -18,22 +18,22 @@ type Info struct {
 	Features []string
 }
 
-func GetInfo(text string, bptns []data.BreakPattern, userDictPath string) ([]Info, error) {
+func GetInfo(text string, bptns []data.BreakPattern, userDictPath string) ([]WordInfo, error) {
 	udic, err := dict.NewUserDict(userDictPath)
 	if err != nil {
-		return []Info{}, err
+		return []WordInfo{}, err
 	}
 
 	ter, err := tokenizer.New(ipa.DictShrink(), tokenizer.OmitBosEos(), tokenizer.UserDict(udic))
 	if err != nil {
-		return []Info{}, err
+		return []WordInfo{}, err
 	}
 
 	return Analyze(ter.Tokenize(text), bptns)
 }
 
-func Analyze(tokens []tokenizer.Token, bptns []data.BreakPattern) ([]Info, error) {
-	result := []Info{}
+func Analyze(tokens []tokenizer.Token, bptns []data.BreakPattern) ([]WordInfo, error) {
+	result := []WordInfo{}
 	var ltoken *tokenizer.Token = nil
 	var rtoken *tokenizer.Token = nil
 
@@ -46,12 +46,12 @@ func Analyze(tokens []tokenizer.Token, bptns []data.BreakPattern) ([]Info, error
 
 		p, err := getPriority(ltoken, rtoken, bptns)
 		if err != nil {
-			return []Info{}, err
+			return []WordInfo{}, err
 		}
 
 		result = append(
 			result,
-			Info{
+			WordInfo{
 				Word:     ltoken.Surface,
 				Priority: p,
 				Start:    ltoken.Start,
@@ -62,7 +62,7 @@ func Analyze(tokens []tokenizer.Token, bptns []data.BreakPattern) ([]Info, error
 	last := tokens[len(tokens)-1]
 	result = append(
 		result,
-		Info{
+		WordInfo{
 			Word:     last.Surface,
 			Priority: math.MaxInt32,
 			Start:    last.Start,

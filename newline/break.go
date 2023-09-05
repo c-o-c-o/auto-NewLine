@@ -8,13 +8,13 @@ import (
 	"strings"
 )
 
-func Break(infos []Info, stg data.Setting, min int, aim float64, max int) (string, error) {
-	breaked := [][]Info{}
+func Break(infos []WordInfo, stg data.Setting, min int, aim float64, max int) (string, error) {
+	breaked := [][]WordInfo{}
 
 	for len(infos) > 0 && getWordLength(infos) > max {
-		space, residue := splitSliceWordCount(infos, max, false)
+		maxline, residue := splitSliceWordCount(infos, max, false)
 
-		if len(space) == 0 { //エラー処理
+		if len(maxline) == 0 { //エラー処理
 			maxlen := 0
 			for _, r := range residue {
 				maxlen = int(math.Max(float64(maxlen), float64(r.End-r.Start)))
@@ -22,8 +22,8 @@ func Break(infos []Info, stg data.Setting, min int, aim float64, max int) (strin
 			return "", errors.New("words longer than -max value found. make that value larger than " + strconv.Itoa(maxlen))
 		}
 
-		line, space := splitSliceWordCount(space, min, true)
-		line, space = moveItemLeftToReght(line, space)
+		line, space := splitSliceWordCount(maxline, min, true)
+		line, space = moveItemLeftToReght(line, space) // 単語の後の改行位置を探るので、最小行から一単語を候補へ移動
 
 		if len(space) != 0 {
 			offset := 0
@@ -47,15 +47,15 @@ func Break(infos []Info, stg data.Setting, min int, aim float64, max int) (strin
 	return merge(breaked, stg), nil
 }
 
-func moveItemLeftToReght(from, to []Info) ([]Info, []Info) {
-	return from[:len(from)-1], append([]Info{from[len(from)-1]}, to...)
+func moveItemLeftToReght(from, to []WordInfo) ([]WordInfo, []WordInfo) {
+	return from[:len(from)-1], append([]WordInfo{from[len(from)-1]}, to...)
 }
 
-func getWordLength(infos []Info) int {
+func getWordLength(infos []WordInfo) int {
 	return infos[len(infos)-1].End - infos[0].Start
 }
 
-func splitSliceWordCount(slice []Info, count int, isover bool) ([]Info, []Info) {
+func splitSliceWordCount(slice []WordInfo, count int, isover bool) ([]WordInfo, []WordInfo) {
 	offset := slice[0].Start
 	splidx := 0
 
@@ -74,7 +74,7 @@ func splitSliceWordCount(slice []Info, count int, isover bool) ([]Info, []Info) 
 	return slice[:splidx+1], slice[splidx+1:]
 }
 
-func getBreakValues(space []Info, wait float64, offset int, aim float64) []float64 {
+func getBreakValues(space []WordInfo, wait float64, offset int, aim float64) []float64 {
 	rslt := []float64{}
 
 	for _, v := range space {
@@ -99,13 +99,13 @@ func getMaxIndex(slice []float64) int {
 	return idx
 }
 
-func merge(infos [][]Info, stg data.Setting) string {
+func merge(candidates [][]WordInfo, stg data.Setting) string {
 	lines := []string{}
 
-	for _, infos := range infos {
+	for _, brks := range candidates {
 		line := ""
 
-		for _, v := range infos {
+		for _, v := range brks {
 			line += v.Word
 		}
 
