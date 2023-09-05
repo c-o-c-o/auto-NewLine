@@ -109,7 +109,9 @@ func merge(candidates [][]WordInfo, stg data.Setting) string {
 			line += v.Word
 		}
 
-		lines = append(lines, deleteBothEnds(line, stg.DeleteFixs))
+		if len(line) > 0 {
+			lines = append(lines, deleteBothEnds(line, stg.DeleteFixs))
+		}
 	}
 
 	return strings.Join(lines, stg.BreakStr)
