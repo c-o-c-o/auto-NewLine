@@ -10,9 +10,10 @@ import (
 
 func Break(infos []WordInfo, stg data.Setting, min int, aim float64, max int) (string, error) {
 	breaked := [][]WordInfo{}
+	allline := infos
 
-	for len(infos) > 0 && getWordLength(infos) > max {
-		maxline, residue := splitSliceWordCount(infos, max, false)
+	for len(allline) > 0 && getWordLength(allline) > max {
+		maxline, residue := splitSliceWordCount(allline, max, false)
 
 		if len(maxline) == 0 { //エラー処理
 			maxlen := 0
@@ -33,13 +34,11 @@ func Break(infos []WordInfo, stg data.Setting, min int, aim float64, max int) (s
 		brkvals := getBreakValues(space, stg.PriorityWait, offset, aim)
 		brkidx := getMaxIndex(brkvals)
 
-		line = append(line, space[:brkidx+1]...)
-		infos = append(space[brkidx+1:], residue...)
-
-		breaked = append(breaked, line)
+		allline = append(space[brkidx+1:], residue...)
+		breaked = append(breaked, append(line, space[:brkidx+1]...))
 	}
 
-	breaked = append(breaked, infos)
+	breaked = append(breaked, allline)
 	return merge(breaked, stg), nil
 }
 
