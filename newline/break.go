@@ -128,6 +128,10 @@ func deleteBothEnds(str string, delstrs []string) string {
 		}
 	}
 
+	if sidx == len(str) {
+		return str[sidx:]
+	}
+
 	for _, delstr := range delstrs {
 		if strings.HasSuffix(str, delstr) {
 			eidx = len(str) - len(delstr)
