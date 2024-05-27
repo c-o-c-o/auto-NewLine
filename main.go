@@ -3,7 +3,6 @@ package main
 import (
 	"auto-NewLine/data"
 	"auto-NewLine/newline"
-	"errors"
 	"log"
 	"math"
 	"os"
@@ -13,9 +12,6 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/urfave/cli/v2"
-	"golang.org/x/text/encoding"
-	"golang.org/x/text/encoding/japanese"
-	"golang.org/x/text/transform"
 )
 
 func main() {
@@ -60,12 +56,6 @@ func main() {
 				Usage:   "どの程度で改行を試みるかの割合。0.0 - 1.0 を設定します。範囲外の場合、テキストに合わせて自動的に設定されます",
 				EnvVars: []string{},
 			},
-			&cli.StringFlag{
-				Name:    "encode",
-				Aliases: []string{"e"},
-				Value:   "shift-jis",
-				Usage:   "エンコード",
-			},
 			&cli.PathFlag{
 				Name:    "setting",
 				Aliases: []string{"s"},
@@ -88,12 +78,7 @@ func appfunc(exedp string) func(c *cli.Context) error {
 		maxlen := c.Int("maxlen")
 		textp := c.Path("text")
 
-		enc, err := GetEncoding(c.String("encode"))
-		if err != nil {
-			return err
-		}
-
-		text, err := LoadText(textp, enc)
+		text, err := LoadText(textp)
 		if err != nil {
 			return err
 		}
@@ -127,8 +112,7 @@ func appfunc(exedp string) func(c *cli.Context) error {
 
 		return WriteTextFile(
 			textp,
-			breaked,
-			enc)
+			breaked)
 	}
 }
 
@@ -140,29 +124,10 @@ func GetStringCountAimPos(textlen, minlen, maxlen, aimpos float64) float64 {
 	}
 }
 
-func GetEncoding(enc string) (encoding.Encoding, error) {
-	e, ok := map[string]encoding.Encoding{
-		"utf-8":     nil,
-		"shift-jis": japanese.ShiftJIS,
-	}[enc]
-
-	if !ok {
-		return nil, errors.New("the encoding was not found")
-	}
-	return e, nil
-}
-
-func LoadText(textp string, enc encoding.Encoding) ([]byte, error) {
+func LoadText(textp string) ([]byte, error) {
 	text, err := os.ReadFile(textp)
 	if err != nil {
 		return nil, err
-	}
-
-	if enc != nil {
-		text, _, err = transform.Bytes(enc.NewDecoder(), text)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	return text, nil
@@ -183,16 +148,7 @@ func LoadSetting(path string) (*data.Setting, error) {
 	return &r, nil
 }
 
-func WriteTextFile(path string, text string, enc encoding.Encoding) error {
+func WriteTextFile(path string, text string) error {
 	bytes := []byte(text)
-
-	if enc != nil {
-		b, _, err := transform.Bytes(enc.NewEncoder(), []byte(text))
-		bytes = b
-		if err != nil {
-			return err
-		}
-	}
-
 	return os.WriteFile(path, bytes, 0777)
 }
